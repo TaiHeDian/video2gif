@@ -62,9 +62,9 @@ class VideoToGifConverterUI(QMainWindow):
         # Output settings
         settings_layout = QHBoxLayout()
         self.fps_combo = QComboBox()
-        self.fps_combo.addItems(["10", "15", "20", "25", "30"])
+        self.fps_combo.addItems(["10", "15", "20", "25", "30", "45", "60"])
         self.resolution_combo = QComboBox()
-        self.resolution_combo.addItems(["640x360", "854x480", "1280x720", "1920x1080"])
+        self.resolution_combo.addItems(["640x360", "854x480", "960x540", "1280x720", "1920x1080", "2560x1440", "3840x2160"])
         settings_layout.addWidget(QLabel("输出帧率:"))
         settings_layout.addWidget(self.fps_combo)
         settings_layout.addWidget(QLabel("输出分辨率:"))
