@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QComboBox, QProgressBar, QSizePolicy, QSlider, QStyle)
 from PySide6.QtCore import Qt, Signal, QUrl, QTime, QTimer
-from PySide6.QtGui import QDropEvent, QDragEnterEvent, QKeyEvent
+from PySide6.QtGui import QDropEvent, QDragEnterEvent, QKeyEvent, QIcon
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
@@ -14,6 +14,7 @@ class VideoToGifConverterUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("动图转换器")
         self.setGeometry(100, 100, 600, 600)
+        self.setWindowIcon(QIcon("vid2gif.ico"))
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)

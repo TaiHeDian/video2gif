@@ -1,14 +1,19 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
+import subprocess
+
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 from PySide6.QtCore import QThread, Signal
-import ffmpeg
+
 from ui import VideoToGifConverterUI
+from get_video_info import get_video_info
 
 
 class ConversionThread(QThread):
     progress_update = Signal(int)
     error = Signal(str)
+    success = Signal()
 
     def __init__(self, input_video, output_path, fps, width):
         super().__init__()
@@ -19,20 +24,27 @@ class ConversionThread(QThread):
 
     def run(self):
         try:
-            input_stream = ffmpeg.input(self.input_video)
-            filtered = (
-                input_stream
-                .filter('fps', fps=self.fps)
-                .filter('scale', width=self.width, height=-1)
-            )
-            split = filtered.split()
-            palette = split[0].filter('palettegen')
-            output = ffmpeg.filter([split[1], palette], 'paletteuse')
-            out = ffmpeg.output(output, self.output_path)
-            ffmpeg.run(out, capture_stdout=True, capture_stderr=True, overwrite_output=True)
-            self.finished.emit()
-        except ffmpeg.Error as e:
-            self.error.emit(f"FFmpeg error: {e.stderr.decode()}")
+            ffmpeg_path = 'ffmpeg.exe'
+            command = [
+                ffmpeg_path,
+                '-i', self.input_video,
+                '-vf', f'fps={self.fps},scale={self.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+                '-y',
+                self.output_path
+            ]
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            
+            process = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                self.error.emit(f"FFmpeg error: {stderr}")
+            else:
+                self.success.emit()
+        except Exception as e:
+            self.error.emit(f"Error: {str(e)}")
 
 
 class VideoToGifConverter:
@@ -66,18 +78,13 @@ class VideoToGifConverter:
 
     def update_video_info(self):
         if self.input_video:
-            try:
-                probe = ffmpeg.probe(self.input_video)
-                video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
-                if video_stream:
-                    fps = eval(video_stream['r_frame_rate'])
-                    width = video_stream['width']
-                    height = video_stream['height']
-                    self.ui.update_video_info(fps, f"{width}x{height}")
-                    self.ui.set_default_fps(fps)
-                    self.ui.set_default_resolution(f"{width}x{height}")
-            except ffmpeg.Error as e:
-                self.show_error_message(f"无法读取视频信息: {str(e)}")
+            video_info = get_video_info(self.input_video)
+            fps = video_info['frame_rate']
+            width = video_info['width']
+            height = video_info['height']
+            self.ui.update_video_info(fps, f"{width}x{height}")
+            self.ui.set_default_fps(fps)
+            self.ui.set_default_resolution(f"{width}x{height}")
 
     def suggest_output_file(self):
         if self.input_video:
@@ -103,21 +110,43 @@ class VideoToGifConverter:
         width = int(self.ui.resolution_combo.currentText().split('x')[0])
 
         self.conversion_thread = ConversionThread(self.input_video, self.output_file, fps, width)
+        self.conversion_thread.success.connect(self.conversion_successful)
         self.conversion_thread.finished.connect(self.conversion_finished)
         self.conversion_thread.error.connect(self.show_error_message)
         self.conversion_thread.start()
 
-        self.ui.enable_convert_button(False)
+        self.disable_ui_elements()
         self.ui.start_progress_animation()
+
+    def conversion_successful(self):
+        self.ui.stop_progress_animation()
+        QMessageBox.information(self.ui, "转换完成", "GIF 转换已完成！")
+
+    def conversion_failed(self, error_message):
+        self.ui.reset_progress()
+        self.ui.enable_convert_button(True)
+        self.show_error_message(f"转换失败: {error_message}")
+        self.ui.progress_bar.setFormat("转换失败")
 
     def conversion_finished(self):
         self.ui.stop_progress_animation()
+        self.enable_ui_elements()
+
+    def disable_ui_elements(self):
+        self.ui.enable_convert_button(False)
+        self.ui.import_button.setEnabled(False)
+        self.ui.path_button.setEnabled(False)
+        self.ui.fps_combo.setEnabled(False)
+        self.ui.resolution_combo.setEnabled(False)
+
+    def enable_ui_elements(self):
         self.ui.enable_convert_button(True)
-        QMessageBox.information(self.ui, "转换完成", "GIF 转换已完成！")
+        self.ui.import_button.setEnabled(True)
+        self.ui.path_button.setEnabled(True)
+        self.ui.fps_combo.setEnabled(True)
+        self.ui.resolution_combo.setEnabled(True)
 
     def show_error_message(self, message):
-        self.ui.reset_progress()
-        self.ui.enable_convert_button(True)
         QMessageBox.critical(self.ui, "错误", message)
 
     def run(self):
