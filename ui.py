@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QComboBox, QProgressBar, QSizePolicy, QSlider, QStyle)
-from PySide6.QtCore import Qt, Signal, QUrl, QTime, QTimer
+from PySide6.QtCore import Qt, Signal, QUrl, QTime
 from PySide6.QtGui import QDropEvent, QDragEnterEvent, QKeyEvent, QIcon
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
@@ -100,9 +100,9 @@ class VideoToGifConverterUI(QMainWindow):
         layout.addWidget(progress_widget)
 
         # 添加用于动画的计时器
-        self.animation_timer = QTimer(self)
-        self.animation_timer.timeout.connect(self.update_progress_animation)
-        self.animation_value = 0
+        # self.animation_timer = QTimer(self)
+        # self.animation_timer.timeout.connect(self.update_progress_animation)
+        # self.animation_value = 0
 
         # 控制按钮
         button_layout = QHBoxLayout()
@@ -226,22 +226,11 @@ class VideoToGifConverterUI(QMainWindow):
         self.drag_drop_label.hide()
         self.video_widget.show()
 
-    def start_progress_animation(self):
-        self.progress_bar.setValue(0)
-        self.progress_label.setText("转换中...")
-        self.animation_timer.start(50)
-
     def stop_progress_animation(self):
-        self.animation_timer.stop()
         self.progress_bar.setValue(100)
         self.progress_label.setText("转换完成")
 
-    def update_progress_animation(self):
-        self.animation_value = (self.animation_value + 5) % 100  # 循环前进，步长为5
-        self.progress_bar.setValue(self.animation_value)
-
     def reset_progress(self):
-        self.animation_timer.stop()
         self.progress_bar.setValue(0)
         self.progress_label.setText("就绪")
 

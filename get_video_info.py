@@ -3,6 +3,7 @@ import os
 import re
 from typing import Dict, Optional
 
+
 def get_video_info(video_path: str) -> Optional[Dict]:
     ffmpeg_path = 'ffmpeg.exe'
     if not os.path.exists(ffmpeg_path):
@@ -39,6 +40,15 @@ def get_video_info(video_path: str) -> Optional[Dict]:
             else:
                 print("Warning: Could not extract frame rate.")
 
+        # 提取总帧数
+        duration_match = re.search(r'Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})', output)
+        if duration_match and 'frame_rate' in info:
+            hours, minutes, seconds = map(float, duration_match.groups())
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+            info['total_frames'] = int(total_seconds * info['frame_rate'])
+        else:
+            print("Warning: Could not calculate total frames.")
+
         return info if info else None
 
     except subprocess.CalledProcessError as e:
@@ -48,13 +58,14 @@ def get_video_info(video_path: str) -> Optional[Dict]:
         print(f"Unexpected error: {e}")
         return None
 
+
 # 使用示例
 if __name__ == "__main__":
-    video_path = './test/input.mp4'  # 替换为实际的视频文件路径
-    info = get_video_info(video_path)
-    if info:
+    VIDEO = './test/input.mp4'  # 替换为实际的视频文件路径
+    INFO = get_video_info(VIDEO)
+    if INFO:
         print("Video Information:")
-        for key, value in info.items():
+        for key, value in INFO.items():
             print(f"{key}: {value}")
     else:
         print("Failed to get video information.")

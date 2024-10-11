@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+import re
+import time
 import subprocess
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
@@ -15,12 +17,13 @@ class ConversionThread(QThread):
     error = Signal(str)
     success = Signal()
 
-    def __init__(self, input_video, output_path, fps, width):
+    def __init__(self, input_video, output_path, fps, width, total_frames):
         super().__init__()
         self.input_video = input_video
         self.output_path = output_path
         self.fps = fps
         self.width = width
+        self.total_frames = total_frames
 
     def run(self):
         try:
@@ -28,21 +31,57 @@ class ConversionThread(QThread):
             command = [
                 ffmpeg_path,
                 '-i', self.input_video,
-                '-vf', f'fps={self.fps},scale={self.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+                '-vf',
+                f'fps={self.fps},scale={self.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
                 '-y',
                 self.output_path
             ]
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
-            
-            process = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            stdout, stderr = process.communicate()
+
+            process = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+
+            # 初始进度阶段（0-20%）
+            for i in range(34):
+                time.sleep(0.67)  # 模拟初始化过程
+                self.progress_update.emit(i)
+
+            last_update_time = time.time()
+            for line in process.stderr:
+                frame_match = re.search(r'frame=\s*(\d+)', line)
+                if frame_match:
+                    current_frame = int(frame_match.group(1))
+                    progress = 33 + int((current_frame / self.total_frames) * 100)  # 随便设置的值，比(100-33)要大
+                    self.progress_update.emit(min(progress, 95))  # 5%
+                    # DEBUG 显示当前已转换的帧
+                    print(current_frame, self.total_frames)
+
+                # 检查进程是否仍在运行
+                if process.poll() is not None:
+                    break
+
+                # 限制进度更新频率
+                current_time = time.time()
+                if current_time - last_update_time > 0.1:  # 每0.1秒最多更新一次
+                    last_update_time = current_time
+
+            # 等待进程完成
+            process.wait()
 
             if process.returncode != 0:
-                self.error.emit(f"FFmpeg error: {stderr}")
+                error_output = process.stderr.read()
+                if "Output file is empty" not in error_output:  # 忽略这个特定的错误
+                    self.error.emit(f"FFmpeg error: {error_output}")
+                else:
+                    self.success.emit()
             else:
                 self.success.emit()
+
+            # 确保进度到达100%
+            self.progress_update.emit(100)
+
         except Exception as e:
             self.error.emit(f"Error: {str(e)}")
 
@@ -109,14 +148,31 @@ class VideoToGifConverter:
         fps = int(self.ui.fps_combo.currentText())
         width = int(self.ui.resolution_combo.currentText().split('x')[0])
 
-        self.conversion_thread = ConversionThread(self.input_video, self.output_file, fps, width)
+        video_info = get_video_info(self.input_video)
+        if not video_info or 'total_frames' not in video_info:
+            self.show_error_message("无法获取视频信息")
+            return
+
+        total_frames = video_info['total_frames']
+
+        self.conversion_thread = ConversionThread(self.input_video, self.output_file, fps, width, total_frames)
+        self.conversion_thread.progress_update.connect(self.update_progress)
         self.conversion_thread.success.connect(self.conversion_successful)
         self.conversion_thread.finished.connect(self.conversion_finished)
         self.conversion_thread.error.connect(self.show_error_message)
         self.conversion_thread.start()
 
         self.disable_ui_elements()
-        self.ui.start_progress_animation()
+        self.ui.progress_bar.setValue(0)
+        self.ui.progress_label.setText("转换中... 0%")
+
+    def update_progress(self, value):
+        self.ui.progress_bar.setValue(value)
+        self.ui.progress_label.setText(f"转换中... {value}%")
+
+    def show_error_message(self, message):
+        if "Output file is empty" not in message:  # 忽略这个特定的错误
+            QMessageBox.critical(self.ui, "错误", message)
 
     def conversion_successful(self):
         self.ui.stop_progress_animation()
@@ -145,9 +201,6 @@ class VideoToGifConverter:
         self.ui.path_button.setEnabled(True)
         self.ui.fps_combo.setEnabled(True)
         self.ui.resolution_combo.setEnabled(True)
-
-    def show_error_message(self, message):
-        QMessageBox.critical(self.ui, "错误", message)
 
     def run(self):
         self.ui.show()
