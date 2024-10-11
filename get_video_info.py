@@ -13,8 +13,9 @@ def get_video_info(video_path: str) -> Optional[Dict]:
     cmd = [ffmpeg_path, '-i', video_path]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, universal_newlines=True, encoding='utf-8', errors='replace')
-        output = result.stderr
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   universal_newlines=True, encoding='utf-8', errors='replace')
+        _, output = process.communicate()
 
         info = {}
 

@@ -40,10 +40,12 @@ class ConversionThread(QThread):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
 
-            process = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                       text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            process = subprocess.Popen(command, startupinfo=startupinfo,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       text=True, encoding='utf-8', errors='replace',
+                                       creationflags=subprocess.CREATE_NO_WINDOW)
 
-            # 初始进度阶段（0-20%）
+            # 初始进度阶段（0-33%）
             for i in range(34):
                 time.sleep(0.67)  # 模拟初始化过程
                 self.progress_update.emit(i)
@@ -53,8 +55,8 @@ class ConversionThread(QThread):
                 frame_match = re.search(r'frame=\s*(\d+)', line)
                 if frame_match:
                     current_frame = int(frame_match.group(1))
-                    progress = 33 + int((current_frame / self.total_frames) * 100)  # 随便设置的值，比(100-33)要大
-                    self.progress_update.emit(min(progress, 95))  # 5%
+                    progress = 33 + int((current_frame / self.total_frames) * 67)
+                    self.progress_update.emit(min(progress, 99))  # 进度不得超过99%
                     # DEBUG 显示当前已转换的帧
                     print(current_frame, self.total_frames)
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QComboBox, QProgressBar, QSizePolicy, QSlider, QStyle)
 from PySide6.QtCore import Qt, Signal, QUrl, QTime
