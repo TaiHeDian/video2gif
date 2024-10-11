@@ -18,8 +18,18 @@
 使用Nuitka打包
 
 - Windows:
-```cmd
-nuitka --standalone --onefile --plugin-enable=pyside6 --windows-console-mode=disable --output-dir=out vid2gif.py
+```commandline
+python -m nuitka --standalone --onefile \
+    --plugin-enable=pyside6 --include-package=PySide6 \
+    --include-package=PySide6.QtMultimedia \
+    --include-package=PySide6.QtMultimediaWidgets \
+    --include-qt-plugins=multimedia \
+    --windows-icon-from-ico=vid2gif.ico \
+    --include-qt-plugins=sensible,qwindows,styles \
+    --windows-console-mode=disable \
+    --windows-file-version=<version> --output-dir=out \
+    --assume-yes-for-downloads \
+    vid2gif.py
 ```
 
 - macOS:
@@ -29,7 +39,7 @@ python -m nuitka --follow-imports \
        --enable-plugin=pyside6 \
        --include-data-dir=.=. \
        --macos-create-app-bundle \
-       --macos-app-icon=app_icon.icns \
+       --macos-app-icon=vid2gif.icns \
        --include-package=PySide6 \
        --output-dir=out \
        vid2gif.py
