@@ -14,7 +14,7 @@ class VideoToGifConverterUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("动图转换器")
         self.setGeometry(100, 100, 600, 600)
-        self.setWindowIcon(QIcon("vid2gif.ico"))
+        self.setAcceptDrops(True)
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -24,7 +24,6 @@ class VideoToGifConverterUI(QMainWindow):
         self.drag_drop_label = QLabel("拖拽视频文件到这里")
         self.drag_drop_label.setAlignment(Qt.AlignCenter)
         self.drag_drop_label.setStyleSheet("border: 2px dashed gray; padding: 20px;")
-        self.drag_drop_label.setAcceptDrops(True)
         self.drag_drop_label.mousePressEvent = self.drag_drop_clicked
 
         self.video_widget = QVideoWidget()
@@ -137,10 +136,17 @@ class VideoToGifConverterUI(QMainWindow):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
     def dropEvent(self, event: QDropEvent):
         for url in event.mimeData().urls():
-            self.import_video_signal.emit(url.toLocalFile())
-            break
+            file_path = url.toLocalFile()
+            if file_path.lower().endswith(('.mp4', '.avi', '.mov')):
+                self.import_video_signal.emit(file_path)
+                break
+        event.acceptProposedAction()
 
     def update_video_info(self, fps, resolution):
         self.fps_label.setText(f"帧率: {fps:.2f}")

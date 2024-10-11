@@ -5,13 +5,13 @@ import os
 import re
 
 def get_video_info(video_path):
-    ffmpeg_path = os.path.join(os.getcwd(), 'ffmpeg.exe')
+    ffmpeg_path = './ffmpeg'
     if not os.path.exists(ffmpeg_path):
         raise FileNotFoundError(f"{ffmpeg_path} not found.")
 
     cmd = [ffmpeg_path, '-i', video_path]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     output = result.stderr
 
     info = {}

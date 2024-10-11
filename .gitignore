@@ -88,10 +88,16 @@ venv.bak/
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
+# IDE
+.vscode/
 .idea/
 out/
 *.iml
 
 # LSP config files
 pyrightconfig.json
+
+# Mac
+.DS_Store
+*.swp
+ffmpeg

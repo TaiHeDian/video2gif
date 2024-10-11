@@ -3,8 +3,8 @@ import os
 import re
 from typing import Dict, Optional
 
-def get_video_info(video_path: str) -> Optional[Dict]:
-    ffmpeg_path = 'ffmpeg.exe'
+def get_video_info(video_path) -> Optional[Dict]:
+    ffmpeg_path = './ffmpeg'
     if not os.path.exists(ffmpeg_path):
         print(f"Error: {ffmpeg_path} not found.")
         return None
@@ -12,7 +12,8 @@ def get_video_info(video_path: str) -> Optional[Dict]:
     cmd = [ffmpeg_path, '-i', video_path]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, universal_newlines=True, encoding='utf-8', errors='replace')
+        result = subprocess.run(cmd, capture_output=True, universal_newlines=True, 
+                                encoding='utf-8', errors='replace', check=False)
         output = result.stderr
 
         info = {}
@@ -50,11 +51,11 @@ def get_video_info(video_path: str) -> Optional[Dict]:
 
 # 使用示例
 if __name__ == "__main__":
-    video_path = './test/input.mp4'  # 替换为实际的视频文件路径
-    info = get_video_info(video_path)
-    if info:
+    video_file = './test/input.mp4'  # 替换为实际的视频文件路径
+    video_info = get_video_info(video_file)
+    if video_info:
         print("Video Information:")
-        for key, value in info.items():
+        for key, value in video_info.items():
             print(f"{key}: {value}")
     else:
         print("Failed to get video information.")

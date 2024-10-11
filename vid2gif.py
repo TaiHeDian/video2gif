@@ -24,20 +24,18 @@ class ConversionThread(QThread):
 
     def run(self):
         try:
-            ffmpeg_path = 'ffmpeg.exe'
+            ffmpeg_path = './ffmpeg'
             command = [
                 ffmpeg_path,
                 '-i', self.input_video,
-                '-vf', f'fps={self.fps},scale={self.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+                '-vf', 
+                f'fps={self.fps},scale={self.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
                 '-y',
                 self.output_path
             ]
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            
-            process = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            stdout, stderr = process.communicate()
+
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            _, stderr = process.communicate()
 
             if process.returncode != 0:
                 self.error.emit(f"FFmpeg error: {stderr}")
